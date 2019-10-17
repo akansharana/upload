@@ -1,4 +1,4 @@
-<?php
+l̥<?php
 /**
  * Static content controller.
  *
@@ -19,7 +19,6 @@
  */
 
 App::uses('AppController', 'Controller');
-use Classes\PHPExcel\IOFactory;
 
 /**s
  * Static content controller
@@ -29,61 +28,73 @@ use Classes\PHPExcel\IOFactory;
  * @package       app.Controller
  * @link http://book.cakephp.org/2.0/en/controllers/pages-controller.html
  */
-class PagesController extends AppController {
-   public $helpers = array('Html', 'Form');
-    public $components = array('RequestHandler');
-    public $uses = array("user_detail");
+class PagesController extends AppController
+{
+	public $helpers = array('Html', 'Form');
+	public $components = array('RequestHandler');
+	public $uses = array("Page");
 
-/**
- * Displays a view
- *
- * @return void
- * @throws NotFoundException When the view file could not be found
- *	or MissingViewException in debug mode.
- */
-    
-      public function beforeFilter() {
-        parent::beforeFilter();
-        $this->Auth->allow('index');
-        $this->loadModel('Page');
-          date_default_timezone_set('asia/kolkata');
-    }
-	public function index() { 
-           
-             if($this->request->is('post')){
-                 
-                                     $data = $this->request->data;
-//                                     print_r($data);
-//                                     die();
- 
-                 if(isset($_FILES['user_detail']['name']) && $_FILES['user_detail']['name'] ==0){
-					$allowedExtensions = array("xls","xlsx","csv");
-					$ext = pathinfo($_FILES['user_detail']['name'], PATHINFO_EXTENSION);
-					if(in_array($ext, $allowedExtensions)) {
-						$file_size = $data['user_detail']['size'] / 1024;
-						if($file_size < 50) {
-							$file = "uploads/".$_FILES['user_detail']['name'];
-							$isUploaded = copy($_FILES['user_detail']['tmp_name'], $file);
-                                                        if($isUploaded) {
-								try {
-									
-									$objPHPExcel = PHPExcel_IOFactory::load($file);
-								} catch (Exception $e) {
-									die('Error loading file "' . pathinfo($file, PATHINFO_BASENAME). '": ' . $e->getMessage());
+	/**
+	 * Displays a view
+	 *
+	 * @return void
+	 * @throws NotFoundException When the view file could not be found
+	 *    or MissingViewException in debug mode.
+	 */
+	public function beforeFilter()
+	{
+		parent::beforeFilter();
+		$this->Auth->allow('index');
+		$this->loadModel('Page');
+		date_default_timezone_set('asia/kolkata');
+	}
+
+	public function index()
+	{
+		if ($this->request->is('post')) {
+			$data = $this->request->data;
+
+			if (isset($data['user_detail'])) {
+				$allowedExtensions = array("xls", "xlsx", "csv");
+				$ext               = pathinfo($data['user_detail']['name'], PATHINFO_EXTENSION);
+				if (in_array($ext, $allowedExtensions)) {
+					$file_size = $data['user_detail']['size'] / 1024;
+					if ($file_size < 50) {
+						$file       = WWW_ROOT.'uploads'.DS.rand(10000, 99999).'_'.$data['user_detail']['name'];
+						$isUploaded = copy($data['user_detail']['tmp_name'], $file);
+						if ($isUploaded) {
+							try {
+								App::import('Vendor', 'PHPExcel_IOFactory', array('file' => 'Classes/PHPExcel/IOFactory.php'));
+
+								$objReader   = PHPExcel_IOFactory::createReader(strtoupper($ext));
+								$objPHPExcel = $objReader->load($file);
+								$worksheet   = $objPHPExcel->getActiveSheet();
+								$toStore     = $keys = array();
+								$index       = 0;
+								foreach ($worksheet->getRowIterator() as $r => $row) {
+									$cellIterator = $row->getCellIterator();
+									$cellIterator->setIterateOnlyExistingCells(false);
+									foreach ($cellIterator as $c => $cell) {
+										if (!is_null($cell)) {
+											if ($r === 1) {
+												$keys[$c] = $cell->getValue();
+											} else {
+												$toStore[$index % count($keys)][$keys[$c]] = $cell->getValue();
+											}
+										}
+									}
+									$index++;
 								}
-                                                               
-                                                        
-                                                        $file= $data['user_detail']['name']; 
-                                                        $file= $data['user_detail']['mobile'];   
-                                                        $file = $data['user_detail']['country'];
-                                                        $this->user_detail->save($file);
-                                                        return $this->redirect("/"); 
-             }
-       
-}
+								$this->Page->saveAll($toStore);
 
-}
-             }
-        }
-}
+								return $this->redirect("/");
+							} catch (Exception $e) {
+								die('Error loading file "'.pathinfo($file, PATHINFO_BASENAME).'": '.$e->getMessage());
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
