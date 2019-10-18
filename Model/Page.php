@@ -4,6 +4,6 @@
 App::uses('Model', 'Model');
 
 
-
-class Page extends Model {
+class Page extends Model
+{
 }
