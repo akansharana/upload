@@ -1,0 +1,7 @@
+Algorithm for uploding  excel file into cakephp.
+step:1->create configuration in
+database.php
+core.php
+routes.php
+step:2->create controller and view and write code.
+step:3->put class folder into vendor library.
