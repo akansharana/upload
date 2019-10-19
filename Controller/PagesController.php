@@ -79,7 +79,7 @@ class PagesController extends AppController
 											if ($r === 1) {
 												$keys[$c] = $cell->getValue();
 											} else {
-												$toStore[$index % count($keys)][$keys[$c]] = $cell->getValue();
+												$toStore[$r][$keys[$c]] = $cell->getValue();
 											}
 										}
 									}
